@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"rest-go-demo/database/mysql"
@@ -8,28 +9,32 @@ import (
 )
 
 //CreatePerson create function
-func CreatePerson(person entity.Person) (entity.Person, error) {
+func CreatePerson(person entity.Person) (interface{}, error) {
 	err := mysql.Connector.Create(person)
 	if err != nil {
-		return entity.Person{}, err.Error
+		return nil, err.Error
 	}
 	res, _ := GetPerson(fmt.Sprint(person.ID))
 	return res, nil
 }
 
 //GetPerson retrieves data from DB
-func GetPerson(id string) (entity.Person, error) {
+func GetPerson(id string) (interface{}, error) {
 	var person entity.Person
 	rows, err := mysql.Connector.DB().Query("Select * from `people` where id = ? ", id)
-	if err != nil {
-		return entity.Person{}, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		rows.Scan(&person.ID, &person.FirstName, &person.LastName, &person.Age)
+	log.Println(rows.Next())
+	if err != nil || !rows.Next() {
+		log.Println("No Data found with id = ", id)
+		err = errors.New("No data found with id = " + id)
+	} else {
+		defer rows.Close()
+		for rows.Next() {
+			rows.Scan(&person.ID, &person.FirstName, &person.LastName, &person.Age)
+		}
 	}
 
-	return person, nil
+	return person, err
+
 }
 
 //GetAllPersons retrieves all data
@@ -37,8 +42,8 @@ func GetAllPersons() ([]entity.Person, error) {
 	var persons []entity.Person
 	rows, err := mysql.Connector.DB().Query("SELECT * from `people`;")
 
-	if err != nil {
-		return []entity.Person{}, err
+	if err != nil || !rows.Next() {
+		return nil, err
 	}
 
 	for rows.Next() {
@@ -48,7 +53,7 @@ func GetAllPersons() ([]entity.Person, error) {
 	}
 
 	defer rows.Close()
-	return persons, nil
+	return persons, err
 }
 
 //DeletePerson deletes data for provided id
@@ -65,13 +70,16 @@ func DeletePerson(id string) error {
 }
 
 //UpdatePerson updates person
-func UpdatePerson(person entity.Person) (entity.Person, error) {
-	_, err := mysql.Connector.DB().Query("update `people` set first_name=?,last_name=?,age=? where id = ?;", person.FirstName, person.LastName, person.Age, person.ID)
-
-	if err != nil {
-		return entity.Person{}, err
+func UpdatePerson(person entity.Person) (interface{}, error) {
+	rows, err := mysql.Connector.DB().Query("update `people` set first_name=?,last_name=?,age=? where id = ?;", person.FirstName, person.LastName, person.Age, person.ID)
+	var personData interface{}
+	if err != nil || !rows.Next() {
+		if err == nil {
+			err = errors.New("No such data")
+		}
+	} else {
+		personData, _ = GetPerson(fmt.Sprint(person.ID))
 	}
-
-	res, _ := GetPerson(fmt.Sprint(person.ID))
-	return res, nil
+	rows.Close()
+	return personData, err
 }
