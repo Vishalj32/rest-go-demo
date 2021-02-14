@@ -3,45 +3,44 @@ package main
 import (
 	"log"
 	"net/http"
-	"rest-go-demo/controller"
-	"rest-go-demo/database/mysql"
+	"rest-go-demo/controllers"
+	"rest-go-demo/database"
 	"rest-go-demo/entity"
 
 	"github.com/gorilla/mux"
-
 	_ "github.com/jinzhu/gorm/dialects/mysql" //Required for MySQL dialect
 )
 
 func main() {
-	dbInit()
-	log.Println("Starting development server at http://127.0.0.1:3000/")
-	log.Println("Quit the server with CONTROL-C.")
+	initDB()
+	log.Println("Starting the HTTP server on port 8090")
 
-	myRouter := mux.NewRouter().StrictSlash(true)
-	myRouter.HandleFunc("/create", controller.CreatePerson).Methods("POST")
-	myRouter.HandleFunc("/get/{id}", controller.GetPerson).Methods("GET")
-	myRouter.HandleFunc("/get", controller.GetAllPersons).Methods("GET")
-	myRouter.HandleFunc("/delete/{id}", controller.DeletePerson).Methods("DELETE")
-	myRouter.HandleFunc("/update", controller.UpdatePerson).Methods("PUT")
-
-	log.Fatal(http.ListenAndServe(":3000", myRouter))
-
-	defer mysql.Connector.Close()
+	router := mux.NewRouter().StrictSlash(true)
+	initaliseHandlers(router)
+	log.Fatal(http.ListenAndServe(":8090", router))
 }
 
-func dbInit() {
-	dbConf := mysql.Config{
-		ServerName: "localhost:3306",
-		User:       "root",
-		Password:   "root",
-		DB:         "learning",
-	}
+func initaliseHandlers(router *mux.Router) {
+	router.HandleFunc("/create", controllers.CreatePerson).Methods("POST")
+	router.HandleFunc("/get", controllers.GetAllPerson).Methods("GET")
+	router.HandleFunc("/get/{id}", controllers.GetPersonByID).Methods("GET")
+	router.HandleFunc("/update/{id}", controllers.UpdatePersonByID).Methods("PUT")
+	router.HandleFunc("/delete/{id}", controllers.DeletPersonByID).Methods("DELETE")
+}
 
-	connectionString := mysql.GetConnectionString(dbConf)
-	connector, err := mysql.Connect(connectionString)
+func initDB() {
+	config :=
+		database.Config{
+			ServerName: "localhost:3306",
+			User:       "debian-sys-maint",
+			Password:   "kkI14jl7LEMfd9A8",
+			DB:         "learning_demo",
+		}
+
+	connectionString := database.GetConnectionString(config)
+	err := database.Connect(connectionString)
 	if err != nil {
 		panic(err.Error())
 	}
-
-	mysql.MigrateDB(connector, &entity.Person{})
+	database.Migrate(&entity.Person{})
 }
