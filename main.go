@@ -32,8 +32,8 @@ func initDB() {
 	config :=
 		database.Config{
 			ServerName: "localhost:3306",
-			User:       "debian-sys-maint",
-			Password:   "kkI14jl7LEMfd9A8",
+			User:       "root",
+			Password:   "root",
 			DB:         "learning_demo",
 		}
 
