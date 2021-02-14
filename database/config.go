@@ -1,8 +1,8 @@
-package mysql
+package database
 
 import "fmt"
 
-//Config MySql Configurations object
+//Config to maintain DB configuration properties
 type Config struct {
 	ServerName string
 	User       string
@@ -10,8 +10,7 @@ type Config struct {
 	DB         string
 }
 
-//GetConnectionString generates MySQL connection String
-var GetConnectionString = func(config Config) string {
+var getConnectionString = func(config Config) string {
 	connectionString := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&collation=utf8mb4_unicode_ci&parseTime=true&multiStatements=true", config.User, config.Password, config.ServerName, config.DB)
 	return connectionString
 }
